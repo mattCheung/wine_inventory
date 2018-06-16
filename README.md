@@ -22,8 +22,21 @@ Use
 
 to install all the backend required python modules
 
+To run the tests, install the requirements from tests/requirements.txt just like above, set the 
+PYTHONPATH=<repo>/tests, cd to <repo>/tests and execute with 
+
+`nosetests -sv .`
+
+Or to run a specific test:
+
+`nosetests -svm '^<test name here' .`
+
     
 ## Frontend (web/react)
+
+TODO
+
+## Database
 
 A no-SQL DB.
 
