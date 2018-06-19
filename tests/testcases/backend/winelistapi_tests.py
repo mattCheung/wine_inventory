@@ -52,3 +52,13 @@ class WineListAPITests(RESTTests):
                 exists = True
                 break
         self.assertTrue(exists)
+
+    def test_post_winelist_missing_mandatatory_info(self):
+        """
+        Test to make sure error is return when POST is missing mandatory fields
+        """
+        wine_data = {
+            'type': 'experimental'
+        }
+        response = self.client.Post(route=self.route, json=wine_data)
+        self.assertEqual(400, response.status_code)
