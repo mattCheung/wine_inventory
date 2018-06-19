@@ -1,10 +1,7 @@
-from flask import Flask, jsonify, make_response
-from flask import abort, request, url_for
-from flask_restful import Api, Resource, reqparse, fields, marshal
+import json
+from flask import abort, Flask, make_response,request, url_for
 from flask_httpauth import HTTPBasicAuth
-
-
-
+from flask_restful import Api, Resource, reqparse, fields
 from mongodb import MongoDatabase
 
 """
@@ -30,6 +27,7 @@ wine_list_mongo.set_db()
 wine_list_mongo.set_collection()
 wine_list_mongo.refresh_list()
 
+
 class WineListAPI(Resource):
     """
     Manipulating the actual wine list
@@ -51,12 +49,32 @@ class WineListAPI(Resource):
     def get(self):
         """
         Gets the current wine list from memory
+        
         :return: List of wines (list)
         """
         # curl -i http://localhost:5000/wine_list/api/v1.0/winelist
-        # return {'wines': marshal(wine, wine_fields) for wine in wine_list}
         wine_list_mongo.refresh_list()
-        return jsonify({'wine': wine_list_mongo.wine_list})
+        response = make_response(json.dumps({'wine':
+                                                 [self.make_public_wine(wine) for wine in
+                                                  wine_list_mongo.wine_list]}), 200
+                                 , {'Access-Control-Allow-Origin': '*'})
+        return response
+
+    def make_public_wine(self, wineInfo):
+        """
+        Updates wine info better for external use
+
+        :param wineInfo: dict that describes the wine (dict)
+        :return: updated wine info (dict)
+        """
+        new_wine = {}
+        for field in wineInfo:
+            if field == '_id':
+                new_wine['_id'] = wineInfo['_id']
+                new_wine['uri'] = url_for('winelist', task_id=wineInfo['_id'], _external=True)
+            else:
+                new_wine[field] = wineInfo[field]
+        return new_wine
 
     def post(self):
         """
@@ -77,11 +95,10 @@ class WineListAPI(Resource):
         }
         if wine_list_mongo.insert(wine):
             wine['_id'] = str(wine['_id'])
-            response = jsonify({'wine': wine})
-            response.status_code = 201
+            response = make_response(json.dumps({'wine': wine}), 201)
             return response
         else:
-            return jsonify({'error': 'unknown error'}), 400
+            return make_response(json.dumps({'error': 'unknown error'}), 400)
 
 class WineAPI(Resource):
     """
@@ -108,8 +125,8 @@ class WineAPI(Resource):
         wine_list_mongo.refresh_list()
         for wine in wine_list_mongo.wine_list:
             if wine['_id'] == id:
-                response = jsonify({'wine': wine})
-                response.status_code = 200
+                response = make_response(json.dumps({'wine': wine}), 200
+                , {'Access-Control-Allow-Origin': '*'})
                 return response
         abort(404)
 
@@ -123,7 +140,7 @@ class WineAPI(Resource):
         # curl -i -H "Content-Type: application/json" -X PATCH -d '{"quantity": 99}' http://localhost:5000/wine_list/api/v1.0/winelist/5b22f0748245f81401b68553
         for wine in wine_list_mongo.wine_list:
             if wine['_id'] == id:
-                print('updating {0} with {1}'.format(id, response.json))
+                print('updating {0} with {1}'.format(id, request.json))
                 wine_list_mongo.update(id, request.json)
                 break
         else:
@@ -134,8 +151,7 @@ class WineAPI(Resource):
         for wine in wine_list_mongo.wine_list:
             if wine['_id'] == id:
                 print('returning {0}'.format(wine))
-                response = jsonify({'wine': wine})
-                response.status_code = 200
+                response = make_response(json.dumps({'wine': wine}), 200)
                 return response
 
     def put(self, id):
@@ -153,8 +169,7 @@ class WineAPI(Resource):
             if wine['_id'] == id:
                 print('calling delete')
                 wine_list_mongo.delete(id)
-                response = jsonify({'result': True})
-                response.status_code = 200
+                response = make_response(json.dumps({'result': True}), 200)
                 return response
         abort(404)
 
