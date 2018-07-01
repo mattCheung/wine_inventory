@@ -62,3 +62,17 @@ class WineListAPITests(RESTTests):
         }
         response = self.client.Post(route=self.route, json=wine_data)
         self.assertEqual(400, response.status_code)
+
+    def test_options_headers_and_allowed_commands(self):
+        """
+        Test to make sure that OPTIONS call will return correct headers & allowed commands
+        """
+        response = self.client.Options(route=self.route)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual('{"Allow": "POST, PATCH, GET, OPTIONS, HEAD"}', response.text)
+        required_headers = {'Access-Control-Allow-Origin': '*',
+                            'Access-Control-Allow-Methods': 'POST,PATCH,GET,OPTIONS,HEAD',
+                            'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept',
+                            'Content-Type': 'text/html; charset=utf-8'}
+        for k, v in required_headers.items():
+            self.assertEqual(response.headers[k], required_headers[k])

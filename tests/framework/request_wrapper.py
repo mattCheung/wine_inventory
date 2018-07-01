@@ -53,14 +53,27 @@ class RequestWrapper():
                                     json=json)
         return response
 
+    def Options(self, route, params=None, data=None, json=None):
+        """
+        Wrapper around OPTIONS method
+
+        :param route: URL path off of serer (str)
+        :param params: any params to pass (dict)
+        :param data: any data to pass (dict)
+        :param json: any json to pass (dict)
+        :return: result of OPTIONS call (response
+        """
+        response = self.session.options(f'{self.url}/{route}', params=params, data=data, json=json)
+        return response
+
     def Post(self, route, params=None, data=None, json=None):
         """
         Wrapper around POST method
 
         :param route: URL path off of the server (str)
-        :param params:
-        :param data:
-        :param json:
+        :param params: any params to pass (dict)
+        :param data: any data to pass (dict)
+        :param json: any json to pass (dict)
         :return: result of the POST call (response)
         """
         response = self.session.post('{0}/{1}'.format(self.url, route), params=params, data=data,
