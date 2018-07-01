@@ -30,7 +30,7 @@ class MongoDatabase():
         :param password: login password (str)
         """
         if username is None:
-            self.client = MongoClient('{0}:{1}'.format(host, port))
+            self.client = MongoClient(f'{host}:{port}')
             self.database = None
             self.collection = None
             self.wine_list = None
@@ -66,6 +66,7 @@ class MongoDatabase():
         Inserts data into DB
 
         :param data: wine info in dict form to insert (dict)
+        :return: whether or not insert was successful or not (bool)
         """
         try:
             self.collection.insert_one(data)
@@ -117,6 +118,6 @@ class MongoDatabase():
             self.collection.delete_one({'_id': ObjectId(id)})
             return True
         except Exception as e:
-            print('Deletion of record identified by {0} failed: {1}'.format(id, str(e)))
+            print(f'Deletion of record identified by {id} failed: {e}')
             return False
 

@@ -22,25 +22,31 @@ wine_fields = {
     'tags': fields.List
 }
 
+desired_headers = {'Access-Control-Allow-Origin': '*'
+                   , 'Access-Control-Allow-Methods' : 'POST,PATCH,GET,OPTIONS,HEAD'
+                   , 'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, '
+                                                     'Accept' #, Authorization'
+}
+
 wine_list_mongo = MongoDatabase()
 wine_list_mongo.set_db()
 wine_list_mongo.set_collection()
 wine_list_mongo.refresh_list()
 
-
+# TODO: Add better logging in general
 class WineListAPI(Resource):
     """
     Manipulating the actual wine list
     """
     def __init__(self):
-        self.reqparse = reqparse.RequestParser()
+        self.reqparse = reqparse.RequestParser(bundle_errors=True)
         self.reqparse.add_argument('year', type=int, required=True, help='No year provided'
                                    , location='json')
         self.reqparse.add_argument('type', type=str, required=True, help='No type provided'
                                    , location='json')
         self.reqparse.add_argument('winery', type=str, required=True, help='No winery provided',
                                    location='json')
-        self.reqparse.add_argument('name', type=str, required=False, location='json')
+        self.reqparse.add_argument('name', type=str, required=True, location='json')
         self.reqparse.add_argument('quantity', type=str, required=False, location='json', default=1)
         self.reqparse.add_argument('notes', type=str, required=False, location='json', default='')
         self.reqparse.add_argument('tags', type=list, required=False, location='json', default=[])
@@ -54,10 +60,10 @@ class WineListAPI(Resource):
         """
         # curl -i http://localhost:5000/wine_list/api/v1.0/winelist
         wine_list_mongo.refresh_list()
+
         response = make_response(json.dumps({'wine':
                                                  [self.make_public_wine(wine) for wine in
-                                                  wine_list_mongo.wine_list]}), 200
-                                 , {'Access-Control-Allow-Origin': '*'})
+                                                  wine_list_mongo.wine_list]}), 200, desired_headers)
         return response
 
     def make_public_wine(self, wineInfo):
@@ -71,10 +77,22 @@ class WineListAPI(Resource):
         for field in wineInfo:
             if field == '_id':
                 new_wine['_id'] = wineInfo['_id']
-                new_wine['uri'] = url_for('winelist', task_id=wineInfo['_id'], _external=True)
+                new_wine['uri'] = url_for('winelist', wine_id=wineInfo['_id'], _external=True)
             else:
                 new_wine[field] = wineInfo[field]
         return new_wine
+
+    def options(self):
+        """
+        Handles OPTIONS requests
+
+        :return: response object (response)
+        """
+        # curl -i -X OPTIONS http://localhost:5000/wine_list/api/v1.0/winelist
+        response = make_response(json.dumps({'Allow': 'POST, PATCH, GET, OPTIONS, HEAD'}), 200
+                                 , desired_headers)
+        return response
+
 
     def post(self):
         """
@@ -93,12 +111,13 @@ class WineListAPI(Resource):
             'notes': args['notes'],
             'tags': args['tags']
         }
+        print(f'using the following for POST: {wine}')
         if wine_list_mongo.insert(wine):
             wine['_id'] = str(wine['_id'])
-            response = make_response(json.dumps({'wine': wine}), 201)
+            response = make_response(json.dumps({'wine': wine}), 201, desired_headers)
             return response
         else:
-            return make_response(json.dumps({'error': 'unknown error'}), 400)
+            return make_response(json.dumps({'error': 'unknown error'}), 400, desired_headers)
 
 class WineAPI(Resource):
     """
@@ -109,9 +128,9 @@ class WineAPI(Resource):
         Initializes the object, sets up parser
         """
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('quantity', type = str, required = False, location = 'json')
-        self.reqparse.add_argument('notes', type = str, required = False, location = 'json')
-        self.reqparse.add_argument('tags', type = list, required = False, location = 'json')
+        self.reqparse.add_argument('quantity', type=str, required=False, location='json')
+        self.reqparse.add_argument('notes', type=str, required=False, location='json')
+        self.reqparse.add_argument('tags', type=list, required=False, location='json')
         super().__init__()
 
     def get(self, id):
@@ -125,8 +144,9 @@ class WineAPI(Resource):
         wine_list_mongo.refresh_list()
         for wine in wine_list_mongo.wine_list:
             if wine['_id'] == id:
-                response = make_response(json.dumps({'wine': wine}), 200
-                , {'Access-Control-Allow-Origin': '*'})
+                # response = make_response(json.dumps({'wine': wine}), 200
+                # , {'Access-Control-Allow-Origin': '*'})
+                response = make_response(json.dumps({'wine': wine}), 200, desired_headers)
                 return response
         abort(404)
 
@@ -140,7 +160,7 @@ class WineAPI(Resource):
         # curl -i -H "Content-Type: application/json" -X PATCH -d '{"quantity": 99}' http://localhost:5000/wine_list/api/v1.0/winelist/5b22f0748245f81401b68553
         for wine in wine_list_mongo.wine_list:
             if wine['_id'] == id:
-                print('updating {0} with {1}'.format(id, request.json))
+                print(f'updating {id} with {request.json}')
                 wine_list_mongo.update(id, request.json)
                 break
         else:
@@ -150,8 +170,8 @@ class WineAPI(Resource):
         wine_list_mongo.refresh_list()
         for wine in wine_list_mongo.wine_list:
             if wine['_id'] == id:
-                print('returning {0}'.format(wine))
-                response = make_response(json.dumps({'wine': wine}), 200)
+                print(f'returning {wine}')
+                response = make_response(json.dumps({'wine': wine}), 200, desired_headers)
                 return response
 
     def put(self, id):
@@ -167,14 +187,14 @@ class WineAPI(Resource):
         # curl -i -X DELETE http://localhost:5000/wine_list/api/v1.0/winelist/5b22f0748245f81401b68553
         for wine in wine_list_mongo.wine_list:
             if wine['_id'] == id:
-                print('calling delete')
+                print(f'calling delete on ID {id}')
                 wine_list_mongo.delete(id)
-                response = make_response(json.dumps({'result': True}), 200)
+                response = make_response(json.dumps({'result': True}), 200, desired_headers)
                 return response
         abort(404)
 
 api.add_resource(WineListAPI, '/wine_list/api/v1.0/winelist', endpoint='winelist')
-api.add_resource(WineAPI, '/wine_list/api/v1.0/winelist/<string:id>', endpoint = 'wine')
+api.add_resource(WineAPI, '/wine_list/api/v1.0/winelist/<string:id>', endpoint ='wine')
 
 if __name__ == '__main__':
     app.run(debug=True)
