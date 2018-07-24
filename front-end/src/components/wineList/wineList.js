@@ -2,13 +2,14 @@ import React, {PropTypes } from 'react';
 
 const TableRow = ({row}) => (
   <tr>
+    {/* have a button to load wine specific info for editing? */}
     <td key={row.id}> {row.id} </td>
     <td key={row.name}> {row.name} </td>
     <td key={row.type}> {row.type} </td>
     <td key={row.year}> {row.year} </td>
     <td key={row.winery}> {row.winery} </td>
     <td key={row.quantity}> {row.quantity} </td>
-    <td key={row.uri}> {row.uri} </td>
+    <td key={row.uri}> <button wineid={row.id} onClick={() => row.onClick(row)}> {row.uri} </button> </td>
   </tr>
 )
 

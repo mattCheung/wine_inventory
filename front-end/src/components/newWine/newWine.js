@@ -17,11 +17,13 @@ class NewWine extends React.Component {
   };
 
   handleChange(event) {
-    // console.log(this.props);
+    {/* console.log(this.props); */}
     this.setState({[event.target.name]: event.target.value});
   };
 
   handleSubmit(event) {
+
+    {/* should use a function passed in from props */}
     alert('Info was submitted');
     console.log("name: " + this.state.name);
     console.log("type: " + this.state.type);
@@ -36,10 +38,11 @@ class NewWine extends React.Component {
       year: this.state.year,
       winery: this.state.vinyard,
       quantity: this.state.quantity})
-      // axios.get("http://localhost:5000/wine_list/api/v1.0/winelist/5b21b38431751f798b0c0665")
     .then(response => {
       console.log('backend response: ', response);
     }).catch(error => console.log(error));
+
+    { /*ideally would reload / GET data */}
   };
 
   render() {
